@@ -11,16 +11,19 @@ gem install gitlab-license
 ## Usage
 
 ```ruby
+require "openssl"
+require "gitlab/license"
+
 # Generate a key pair. You should do this only once.
-key_pair = OpenSSL::PKey::RSA.generate(2048)
+#key_pair = OpenSSL::PKey::RSA.generate(2048)
 
 # Write it to a file to use in the license generation application.
-File.open("license_key", "w") { |f| f.write(key_pair.to_pem) }
+#File.open("license_key", "w") { |f| f.write(key_pair.to_pem) }
 
 # Extract the public key.
-public_key = key_pair.public_key
+#public_key = key_pair.public_key
 # Write it to a file to ship along with the main application.
-File.open("license_key.pub", "w") { |f| f.write(public_key.to_pem) }
+#File.open("license_key.pub", "w") { |f| f.write(public_key.to_pem) }
 
 # In the license generation application, load the private key from a file.
 private_key = OpenSSL::PKey::RSA.new File.read("license_key")
@@ -33,41 +36,41 @@ license = Gitlab::License.new
 # E.g.: "This instance of GitLab Enterprise Edition is licensed to:"
 # Specific keys don't matter, but there needs to be at least one.
 license.licensee = {
-  "Name"    => "Douwe Maan",
-  "Company" => "GitLab B.V.",
-  "Email"   => "douwe@gitlab.com"
+  "Name"    => "nobody",
+  "Company" => "GitLab",
+  "Email"   => "nobody@gitlab.com"
 }
 
-# The date the license starts. 
+# The date the license starts.
 # Required.
-license.starts_at         = Date.new(2015, 4, 24)
-# The date the license expires. 
+license.starts_at         = Date.new(2022, 4, 24)
+# The date the license expires.
 # Not required, to allow lifetime licenses.
-license.expires_at        = Date.new(2016, 4, 23)
+license.expires_at        = Date.new(2094, 4, 23)
 
 # The below dates are hardcoded in the license so that you can play with the
 # period after which there are "repercussions" to license expiration.
 
-# The date admins will be notified about the license's pending expiration. 
+# The date admins will be notified about the license's pending expiration.
 # Not required.
-license.notify_admins_at  = Date.new(2016, 4, 19)
+license.notify_admins_at  = Date.new(2094, 4, 19)
 
 # The date regular users will be notified about the license's pending expiration.
 # Not required.
-license.notify_users_at   = Date.new(2016, 4, 23)
+license.notify_users_at   = Date.new(2094, 4, 23)
 
-# The date "changes" like code pushes, issue or merge request creation 
+# The date "changes" like code pushes, issue or merge request creation
 # or modification and project creation will be blocked.
 # Not required.
-license.block_changes_at  = Date.new(2016, 5, 7)
+license.block_changes_at  = Date.new(2094, 5, 7)
 
 # Restrictions bundled with this license.
 # Not required, to allow unlimited-user licenses for things like educational organizations.
 license.restrictions  = {
   # The maximum allowed number of active users.
   # Not required.
-  active_user_count: 10000
-
+  active_user_count: 10000,
+  plan: "ultimate"
   # We don't currently have any other restrictions, but we might in the future.
 }
 
@@ -103,12 +106,12 @@ unless $license
 end
 
 # Quit if the active user count exceeds the allowed amount:
-if $license.restricted?(:active_user_count)
-  active_user_count = User.active.count
-  if active_user_count > $license.restrictions[:active_user_count]
-    raise "The active user count exceeds the allowed amount!"
-  end
-end
+# if $license.restricted?(:active_user_count)
+#   active_user_count = User.active.count
+#   if active_user_count > $license.restrictions[:active_user_count]
+#     raise "The active user count exceeds the allowed amount!"
+#   end
+# end
 
 # Show admins a message if the license is about to expire.
 if $license.notify_admins?
@@ -150,6 +153,11 @@ else
   puts "The license will never expire."
 end
 ```
+## Usage (gitlab-ee 15.11.10-ee.0 tested)
+1. ruby gen.rb (the above is gen.rb)
+2. copy license_key.pub to /opt/gitlab/embedded/service/gitlab-rails/.license_encryption_key.pub
+3. restart gitlab-ee
+4. copy GitLabBV.gitlab-license value to gitlab web settings
 
 ## Usage (easy mode)
 
